@@ -29,7 +29,7 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="projects")
-    documents = relationship("Document", back_populates="project")
+    documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="project")
 
 class Document(Base):

@@ -9,9 +9,9 @@ class UserCreateRequest(BaseModel):
     password: str
     email: EmailStr
 
-class UserLoginRequest(BaseModel):
-    username: str
-    password: str
+class JWTToken(BaseModel):
+    access_token: str
+    token_type: str
 
 class ProjectCreateRequest(BaseModel):
     name: str
