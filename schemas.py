@@ -16,9 +16,6 @@ class JWTToken(BaseModel):
 class ProjectCreateRequest(BaseModel):
     name: str
 
-# class DocumentCreateRequest(BaseModel):
-#     filename: str
-
 class ChunkCreateRequest(BaseModel):
     content: str
 
@@ -46,7 +43,6 @@ class ProjectResponse(BaseModel):
     status: str
     created_at: datetime
     messages: List["MessageResponse"] = []
-    task: "TaskResponse | None" = None
 
     class Config:
         from_attributes = True
@@ -63,10 +59,32 @@ class DocumentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DocumentProgressResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    filename: str
+    status: str
+    total_chunks: int | None
+    chunks_summarized: int
+    chunks_embedded: int
+
+    class Config:
+        from_attributes = True
+
+class ProjectProgressResponse(BaseModel):
+    status: str
+    total_documents: int
+    documents_processed: int
+    documents: List[DocumentProgressResponse]
+
 class ChunkResponse(BaseModel):
     id: UUID
     document_id: UUID
     content: str
+    summarised_content: str | None = None
+    has_text: bool | None = None
+    has_image: bool | None = None
+    has_table: bool | None = None
     created_at: datetime
 
     class Config:
@@ -81,10 +99,3 @@ class MessageResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-class TaskResponse(BaseModel):
-    id: UUID
-    project_id: UUID
-    status: str
-    stage: str | None = None
-    progress: float

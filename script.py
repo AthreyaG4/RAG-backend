@@ -6,7 +6,6 @@ from routes.document import route as document_route
 from routes.documentChunks import route as chunk_route
 from routes.auth import route as login_route
 from routes.messages import route as messages_route
-from routes.tasks import router as tasks_route
 from fastapi.middleware.cors import CORSMiddleware
 
 import logging
@@ -43,4 +42,3 @@ app.include_router(project_route)
 app.include_router(document_route)
 app.include_router(chunk_route)
 app.include_router(messages_route)
-app.include_router(tasks_route)

@@ -5,13 +5,14 @@ from schemas import JWTToken
 from db import get_db
 from models import User
 from sqlalchemy.orm import Session
-from datetime import timedelta
-from security.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from security.jwt import create_access_token
 
 route = APIRouter(prefix="/api/login", tags=["login"])
 
 def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(User).filter(User.email == username).first()
+    user = db.query(User).filter(
+        User.email == username
+    ).first()
     
     if not user:
         return None
@@ -28,6 +29,8 @@ async def login_for_access_token(
 ):  
     username = form_data.username
     password = form_data.password
+
+    print("HERE")
     user = authenticate_user(db, username, password)
 
     if not user:
@@ -36,10 +39,6 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": user.email})
 
     return {"access_token": access_token, "token_type": "bearer"}

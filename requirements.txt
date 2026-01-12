@@ -1,5 +1,6 @@
 fastapi[standard]
 pydantic
+pydantic-settings
 python-dotenv
 sqlalchemy
 psycopg2-binary
@@ -9,3 +10,4 @@ python-multipart
 boto3
 celery
 redis
+pgvector

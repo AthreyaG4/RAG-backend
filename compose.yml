@@ -34,7 +34,7 @@ services:
 
   celery-worker:
     build: .
-    command: celery -A celery_app worker --loglevel=info
+    command: celery -A celery_app worker --loglevel=info --concurrency=5
     container_name: celery-worker
     networks:
       - backend

@@ -12,11 +12,20 @@ route = APIRouter(prefix="/api/projects/{project_id}/messages", tags=["messages"
 async def list_messages(project_id: UUID, 
                         current_user: User = Depends(get_current_active_user), 
                         db: Session = Depends(get_db)):
-    project = db.query(Project).filter(Project.user_id == current_user.id, Project.id == project_id).first()
+    
+    project = db.query(Project).filter(
+        Project.user_id == current_user.id, 
+        Project.id == project_id
+    ).first()
+
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    return db.query(Message).filter(Message.project_id == project_id).all()
+    return (
+        db.query(Message)
+        .filter(Message.project_id == project_id)
+        .order_by(Message.created_at.asc()).all()
+    )
 
 @route.post("/", response_model=list[MessageResponse])
 async def create_message(project_id: UUID,
@@ -24,7 +33,11 @@ async def create_message(project_id: UUID,
                          current_user: User = Depends(get_current_active_user),
                          db: Session = Depends(get_db)):
 
-    project = db.query(Project).filter(Project.user_id == current_user.id, Project.id == project_id).first()
+    project = db.query(Project).filter(
+        Project.user_id == current_user.id, 
+        Project.id == project_id
+    ).first()
+    
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     

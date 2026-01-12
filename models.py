@@ -1,10 +1,10 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Double
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, mapped_column
 from datetime import datetime
 import uuid
-
 from db import Base
+from pgvector.sqlalchemy import VECTOR
 
 class User(Base):
     __tablename__ = "users"
@@ -31,7 +31,6 @@ class Project(Base):
     user = relationship("User", back_populates="projects")
     documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="project", cascade="all, delete-orphan")
-    task = relationship("Task", back_populates="project", cascade="all, delete-orphan", uselist=False)
 
 class Document(Base):
     __tablename__ = "documents"
@@ -44,6 +43,10 @@ class Document(Base):
     s3_key = Column(String, nullable=True)
     status = Column(String, nullable=False, default="uploaded")
 
+    total_chunks = Column(Integer, nullable=True)
+    chunks_summarized = Column(Integer, default=0)
+    chunks_embedded = Column(Integer, default=0)
+
     project = relationship("Project", back_populates="documents")
     chunks = relationship("Chunk", back_populates="document", cascade="all, delete-orphan")
 
@@ -52,9 +55,16 @@ class Chunk(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     content = Column(String, nullable=False)
+    summarised_content = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="created")
+    embedding = mapped_column(VECTOR(3))
+    has_text = Column(Boolean, nullable=True)
+    has_image = Column(Boolean, nullable=True)
+    has_table = Column(Boolean, nullable=True)
 
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
     document = relationship("Document", back_populates="chunks")
 
@@ -69,16 +79,3 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship("Project", back_populates="messages")
-
-class Task(Base):
-    __tablename__ = "tasks"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    progress = Column(Double, default = 0.0)
-    status = Column(String, nullable=False)
-    stage = Column(String, nullable=True)
-
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    project = relationship("Project", back_populates="task")
