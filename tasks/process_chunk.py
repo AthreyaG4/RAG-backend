@@ -2,8 +2,10 @@ from celery_app import celery_app
 from db import SessionLocal
 from models import Document, Chunk, Project
 from uuid import UUID
-from utils.summarize import summarize_chunk
-from utils.embed import embed_chunk
+import requests
+from config import settings
+
+HF_ACCESS_TOKEN = settings.HF_ACCESS_TOKEN
 
 @celery_app.task(bind=True)
 def process_chunk(self, chunk_id: str):
@@ -16,8 +18,18 @@ def process_chunk(self, chunk_id: str):
             return {"status": "error", "message": "Chunk not found"}
 
         # Summarize
-        summarized_content = summarize_chunk(chunk.content)
-        chunk.summarised_content = summarized_content 
+        summarized_content = requests.post(
+            'https://t96rc5oaco3mqobi.eu-west-1.aws.endpoints.huggingface.cloud/summarize',
+            data = {
+                "chunk_text": chunk.content,
+                "image_urls": [
+                    "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/pipeline-cat-chonk.jpeg"
+                ]
+            },
+            timeout = 500
+        )
+
+        chunk.summarised_content = summarized_content
         chunk.status = "summarized"
         db.commit()
 
@@ -27,7 +39,14 @@ def process_chunk(self, chunk_id: str):
         db.commit()
 
         # Embed
-        embedding = embed_chunk(summarized_content)
+        embedding = requests.post(
+            'https://t96rc5oaco3mqobi.eu-west-1.aws.endpoints.huggingface.cloud/embed',
+            data = {
+                "summarized_text" : chunk.summarised_content
+            },
+            timeout = 100
+        )
+
         chunk.embedding = embedding
         chunk.status = "embedded"
         db.commit()
@@ -58,7 +77,7 @@ def process_chunk(self, chunk_id: str):
             if all_documents_ready:
                 project.status = "ready"
                 db.commit()
-                print(f"🎉 Project {project.name} is fully ready!")
+                print(f"Project {project.name} is fully ready!")
 
         return {"status": "done"}
 
