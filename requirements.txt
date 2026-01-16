@@ -12,3 +12,4 @@ celery
 redis
 pgvector
 requests
+llama-cloud-services

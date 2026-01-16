@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from db import init_db
+from routes.health import router as health_route
 from routes.user import route as user_route
 from routes.project import route as project_route
 from routes.document import route as document_route
@@ -7,6 +8,7 @@ from routes.documentChunks import route as chunk_route
 from routes.auth import route as login_route
 from routes.messages import route as messages_route
 from fastapi.middleware.cors import CORSMiddleware
+import requests
 
 import logging
 
@@ -36,6 +38,7 @@ app.add_middleware(
 def on_startup():
     init_db()
 
+app.include_router(health_route)
 app.include_router(login_route)
 app.include_router(user_route)
 app.include_router(project_route)

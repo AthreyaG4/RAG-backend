@@ -6,6 +6,7 @@ import requests
 from config import settings
 
 HF_ACCESS_TOKEN = settings.HF_ACCESS_TOKEN
+GPU_SERVICE_URL = settings.GPU_SERVICE_URL
 
 @celery_app.task(bind=True)
 def process_chunk(self, chunk_id: str):
@@ -19,7 +20,10 @@ def process_chunk(self, chunk_id: str):
 
         # Summarize
         summarized_content = requests.post(
-            'https://t96rc5oaco3mqobi.eu-west-1.aws.endpoints.huggingface.cloud/summarize',
+            f"{GPU_SERVICE_URL}/summarize",
+            headers={
+                "Authorization": f"Bearer {HF_ACCESS_TOKEN}"
+            },
             data = {
                 "chunk_text": chunk.content,
                 "image_urls": [
@@ -40,7 +44,10 @@ def process_chunk(self, chunk_id: str):
 
         # Embed
         embedding = requests.post(
-            'https://t96rc5oaco3mqobi.eu-west-1.aws.endpoints.huggingface.cloud/embed',
+            f"{GPU_SERVICE_URL}/embed",
+            headers={
+                "Authorization": f"Bearer {HF_ACCESS_TOKEN}"
+            },
             data = {
                 "summarized_text" : chunk.summarised_content
             },
