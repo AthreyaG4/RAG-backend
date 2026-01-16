@@ -3,7 +3,6 @@ from db import SessionLocal
 from models import Document, Chunk
 from uuid import UUID
 from utils.parse import chunk_document
-from utils.s3 import read_file_from_s3
 from tasks.process_chunk import process_chunk
 
 @celery_app.task(bind=True)
@@ -16,12 +15,10 @@ def process_document(self, project_id: str, document_id: str):
         if not document:
             return {"status": "error", "message": "Document not found"}
 
-        file_content = read_file_from_s3(document.s3_key) # type: ignore
-
         document.status = "chunking" # type: ignore
         db.commit()
 
-        chunks = chunk_document(file_content) # type: ignore
+        chunks = chunk_document(document) # type: ignore
 
         for chunk in chunks:
             new_chunk = Chunk(
@@ -40,8 +37,8 @@ def process_document(self, project_id: str, document_id: str):
         document.status = "processing" # type: ignore
         db.commit()
 
-        for chunk in db.query(Chunk).filter(Chunk.document_id == document.id).all():
-            process_chunk.delay(str(chunk.id)) # type: ignore
+        # for chunk in db.query(Chunk).filter(Chunk.document_id == document.id).all():
+        #     process_chunk.delay(str(chunk.id)) # type: ignore
 
         return {"status": "done"}
         

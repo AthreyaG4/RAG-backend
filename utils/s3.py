@@ -18,7 +18,7 @@ s3_client = boto3.client(
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )
 
-async def read_file_from_s3(s3_key: str) -> bytes:
+def read_file_from_s3(s3_key: str) -> bytes:
     response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
     return response['Body'].read()
 
