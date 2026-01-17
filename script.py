@@ -14,17 +14,14 @@ import logging
 
 logging.basicConfig(
     level=logging.INFO,
-    format=f'%(asctime)s - RAG Service - %(levelname)s - %(message)s'
+    format=f"%(asctime)s - RAG Service - %(levelname)s - %(message)s",
 )
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-origins = [
-    "http://localhost",
-    "http://localhost:5173"
-]
+origins = ["http://localhost", "http://localhost:5173"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,9 +31,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 def on_startup():
     init_db()
+
 
 app.include_router(health_route)
 app.include_router(login_route)

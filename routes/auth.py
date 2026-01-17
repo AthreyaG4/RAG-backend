@@ -9,24 +9,23 @@ from security.jwt import create_access_token
 
 route = APIRouter(prefix="/api/login", tags=["login"])
 
+
 def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(User).filter(
-        User.email == username
-    ).first()
-    
+    user = db.query(User).filter(User.email == username).first()
+
     if not user:
         return None
 
-    if not password_hash.verify(password, user.password_hash): # type: ignore
+    if not password_hash.verify(password, user.password_hash):  # type: ignore
         return None
-    
+
     return user
+
 
 @route.post("/", response_model=JWTToken)
 async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):  
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
     username = form_data.username
     password = form_data.password
 

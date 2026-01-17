@@ -93,7 +93,19 @@ def start_processing(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = (
+        db.query(Project)
+        .filter(
+            Project.id == project_id,
+        )
+        .first()
+    )
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
     documents = db.query(Document).filter(Document.project_id == project_id).all()
 
     for doc in documents:

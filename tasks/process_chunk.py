@@ -103,7 +103,7 @@ def process_chunk(self, chunk_id: str):
         db.commit()
         return {"status": "done"}
 
-    except Exception as e:
+    except:
         db.rollback()
 
         chunk = db.query(Chunk).filter(Chunk.id == chunk_uuid).first()

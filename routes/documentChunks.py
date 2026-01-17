@@ -6,22 +6,33 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from security.jwt import get_current_active_user
 
-route = APIRouter(prefix="/api/projects/{project_id}/documents/{document_id}/chunks", tags=["chunks"])
+route = APIRouter(
+    prefix="/api/projects/{project_id}/documents/{document_id}/chunks", tags=["chunks"]
+)
+
 
 @route.get("/", response_model=list[ChunkResponse])
-async def list_chunks(project_id: UUID,
-                      document_id: UUID,
-                      current_user: User = Depends(get_current_active_user), 
-                      db: Session = Depends(get_db)):
-    
-    document = db.query(Document).join(Document.project).filter(
-        Document.id == document_id,
-        Document.project_id == project_id,
-        Document.project.has(user_id=current_user.id)
-    ).first()
-    
+async def list_chunks(
+    project_id: UUID,
+    document_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    document = (
+        db.query(Document)
+        .join(Document.project)
+        .filter(
+            Document.id == document_id,
+            Document.project_id == project_id,
+            Document.project.has(user_id=current_user.id),
+        )
+        .first()
+    )
+
     if not document:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     chunks = (
         db.query(Chunk)
@@ -32,23 +43,39 @@ async def list_chunks(project_id: UUID,
 
     return chunks
 
-@route.get("/{chunk_id}", response_model=ChunkResponse)
-async def get_chunk(project_id: UUID,
-                    document_id: UUID,
-                    chunk_id: UUID,
-                    current_user: User = Depends(get_current_active_user),
-                    db: Session = Depends(get_db)):
-    document = db.query(Document).join(Document.project).filter(
-        Document.id == document_id,
-        Document.project_id == project_id,
-        Document.project.has(user_id=current_user.id)
-    ).first()
-    
-    if not document:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    chunk = db.query(Chunk).filter(Chunk.document_id == document_id, Chunk.id == chunk_id).first()
-    
+@route.get("/{chunk_id}", response_model=ChunkResponse)
+async def get_chunk(
+    project_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    document = (
+        db.query(Document)
+        .join(Document.project)
+        .filter(
+            Document.id == document_id,
+            Document.project_id == project_id,
+            Document.project.has(user_id=current_user.id),
+        )
+        .first()
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+
+    chunk = (
+        db.query(Chunk)
+        .filter(Chunk.document_id == document_id, Chunk.id == chunk_id)
+        .first()
+    )
+
     if not chunk:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chunk not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chunk not found"
+        )
     return chunk
