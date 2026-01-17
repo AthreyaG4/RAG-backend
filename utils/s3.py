@@ -12,15 +12,17 @@ S3_BUCKET = settings.S3_BUCKET_NAME
 AWS_REGION = settings.AWS_REGION
 
 s3_client = boto3.client(
-    's3',
+    "s3",
     region_name=AWS_REGION,
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
 )
+
 
 def read_file_from_s3(s3_key: str) -> bytes:
     response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
-    return response['Body'].read()
+    return response["Body"].read()
+
 
 async def upload_files_to_s3(user_id: UUID, project_id: UUID, files: List[UploadFile]):
     allowed_extensions = {".pdf", ".txt", ".md", ".doc", ".docx"}
@@ -29,22 +31,24 @@ async def upload_files_to_s3(user_id: UUID, project_id: UUID, files: List[Upload
     total_size = 0
 
     for file in files:
-        file_ext = os.path.splitext(file.filename)[1].lower() # type: ignore
+        file_ext = os.path.splitext(file.filename)[1].lower()  # type: ignore
         if file_ext not in allowed_extensions:
-            results.append({
-                "filename": file.filename,
-                "status": "error",
-                "error": f"File type {file_ext} not allowed"
-            })
+            results.append(
+                {
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": f"File type {file_ext} not allowed",
+                }
+            )
             continue
         unique_id = str(uuid.uuid4())[:8]
-        original_name = os.path.splitext(file.filename)[0] #type: ignore
-        s3_key = f"uploads/{user_id}/{project_id}/{unique_id}_{original_name}{file_ext}"
+        original_name = os.path.splitext(file.filename)[0]  # type: ignore
+        s3_key = f"uploads/{user_id}/{project_id}/documents/{unique_id}_{original_name}{file_ext}"
 
         try:
             file_content = await file.read()
             file_size = len(file_content)
-            
+
             # Upload to S3
             s3_client.put_object(
                 Bucket=S3_BUCKET,
@@ -52,35 +56,41 @@ async def upload_files_to_s3(user_id: UUID, project_id: UUID, files: List[Upload
                 Body=file_content,
                 ContentType=file.content_type or "application/octet-stream",
                 Metadata={
-                    'original_filename': file.filename,
-                    'uploaded_at': datetime.now().isoformat()
+                    "original_filename": file.filename,
+                    "uploaded_at": datetime.now().isoformat(),
+                },
+            )
+
+            file_url = f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+
+            results.append(
+                {
+                    "filename": file.filename,
+                    "status": "uploaded",
+                    "s3_key": s3_key,
+                    "file_url": file_url,
+                    "size": file_size,
                 }
             )
-            
-            file_url = f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
-            
-            results.append({
-                "filename": file.filename,
-                "status": "uploaded",
-                "s3_key": s3_key,
-                "file_url": file_url,
-                "size": file_size
-            })
-            
+
             total_size += file_size
-            
+
         except ClientError as e:
-            results.append({
-                "filename": file.filename,
-                "status": "failed",
-                "error": f"S3 upload failed: {str(e)}"
-            })
+            results.append(
+                {
+                    "filename": file.filename,
+                    "status": "failed",
+                    "error": f"S3 upload failed: {str(e)}",
+                }
+            )
         except Exception as e:
-            results.append({
-                "filename": file.filename,
-                "status": "failed",
-                "error": f"Upload failed: {str(e)}"
-            })
+            results.append(
+                {
+                    "filename": file.filename,
+                    "status": "failed",
+                    "error": f"Upload failed: {str(e)}",
+                }
+            )
 
     successful = sum(1 for r in results if r["status"] == "uploaded")
     failed = len(results) - successful
@@ -89,15 +99,121 @@ async def upload_files_to_s3(user_id: UUID, project_id: UUID, files: List[Upload
         "results": results,
         "total_size": total_size,
         "successful_count": successful,
-        "failed_count": failed
+        "failed_count": failed,
     }
+
+
+def upload_image_to_s3(
+    image_path: str,
+    user_id: UUID,
+    project_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    page_number: int = 0,
+):
+    try:
+        # Read the local image file
+        with open(image_path, "rb") as img_file:
+            image_content = img_file.read()
+
+        # Extract filename from path
+        image_filename = os.path.basename(image_path)
+        file_ext = os.path.splitext(image_filename)[1].lower()
+
+        # Generate S3 key
+        image_unique_id = str(uuid.uuid4())[:8]
+        s3_key = f"uploads/{user_id}/{project_id}/images/{document_id}_{image_unique_id}_{image_filename}"
+
+        # Determine content type
+        content_type_map = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".bmp": "image/bmp",
+            ".svg": "image/svg+xml",
+        }
+        content_type = content_type_map.get(file_ext, "image/png")
+
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=image_content,
+            ContentType=content_type,
+            Metadata={
+                "original_filename": image_filename,
+                "uploaded_at": datetime.now().isoformat(),
+                "document_id": str(document_id),
+                "chunk_id": str(chunk_id),
+                "page_number": str(page_number),
+            },
+        )
+
+        # # Optional: Clean up local file after successful upload
+        # try:
+        #     os.remove(image_path)
+        # except Exception:
+        #     pass
+
+        return {
+            "status": "uploaded",
+            "s3_key": s3_key,
+            "filename": image_filename,
+            "size": len(image_content),
+        }
+
+    except FileNotFoundError:
+        return {
+            "status": "failed",
+            "filename": os.path.basename(image_path),
+            "error": f"File not found: {image_path}",
+        }
+    except ClientError as e:
+        return {
+            "status": "failed",
+            "filename": os.path.basename(image_path),
+            "error": f"S3 upload failed: {str(e)}",
+        }
+    except Exception as e:
+        return {
+            "status": "failed",
+            "filename": os.path.basename(image_path),
+            "error": f"Upload failed: {str(e)}",
+        }
+
 
 async def delete_file_from_s3(s3_key: str):
     if not s3_key:
         return
-    
+
     try:
-        s3_response = s3_client.delete_object(Bucket=S3_BUCKET, Key=s3_key)
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=s3_key)
         return True
     except Exception as e:
         raise Exception(f"Failed to delete {s3_key} from S3: {str(e)}")
+
+
+def get_presigned_urls_for_chunk_images(
+    images,
+    expires_in: int = 900,
+):
+    urls = []
+
+    for image in images:
+        if not image.s3_key:
+            continue
+
+        url = s3_client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={
+                "Bucket": S3_BUCKET,
+                "Key": image.s3_key,
+            },
+            ExpiresIn=expires_in,
+        )
+
+        urls.append(url)
+
+    return urls

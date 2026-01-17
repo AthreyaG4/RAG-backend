@@ -6,6 +6,7 @@ import uuid
 from db import Base
 from pgvector.sqlalchemy import VECTOR
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -18,6 +19,7 @@ class User(Base):
 
     projects = relationship("Project", back_populates="user")
 
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -29,8 +31,13 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="projects")
-    documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
-    messages = relationship("Message", back_populates="project", cascade="all, delete-orphan")
+    documents = relationship(
+        "Document", back_populates="project", cascade="all, delete-orphan"
+    )
+    messages = relationship(
+        "Message", back_populates="project", cascade="all, delete-orphan"
+    )
+
 
 class Document(Base):
     __tablename__ = "documents"
@@ -48,25 +55,42 @@ class Document(Base):
     chunks_embedded = Column(Integer, default=0)
 
     project = relationship("Project", back_populates="documents")
-    chunks = relationship("Chunk", back_populates="document", cascade="all, delete-orphan")
+    chunks = relationship(
+        "Chunk", back_populates="document", cascade="all, delete-orphan"
+    )
+
 
 class Chunk(Base):
     __tablename__ = "chunks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     content = Column(String, nullable=False)
-    summarised_content = Column(String, nullable=True)
     status = Column(String, nullable=False, default="created")
-    embedding = mapped_column(VECTOR(3))
+    summarised_content = Column(String, nullable=True)
+    embedding = mapped_column(VECTOR(384))
     has_text = Column(Boolean, nullable=True)
     has_image = Column(Boolean, nullable=True)
     has_table = Column(Boolean, nullable=True)
+    page_number = Column(Integer, nullable=False)
 
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
     document = relationship("Document", back_populates="chunks")
+    images = relationship("Image", back_populates="chunk")
+
+
+class Image(Base):
+    __tablename__ = "images"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    s3_key = Column(String, nullable=True)
+
+    chunk_id = Column(UUID(as_uuid=True), ForeignKey("chunks.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    chunk = relationship("Chunk", back_populates="images")
+
 
 class Message(Base):
     __tablename__ = "messages"

@@ -3,28 +3,35 @@ from uuid import UUID
 from datetime import datetime
 from typing import List
 
+
 class UserCreateRequest(BaseModel):
     name: str
     username: str
     password: str
     email: EmailStr
 
+
 class JWTToken(BaseModel):
     access_token: str
     token_type: str
 
+
 class ProjectCreateRequest(BaseModel):
     name: str
 
+
 class ChunkCreateRequest(BaseModel):
     content: str
+
 
 class MessageCreateRequest(BaseModel):
     role: str
     content: str
 
+
 class ProjectUpdateRequest(BaseModel):
     name: str | None = None
+
 
 class UserResponse(BaseModel):
     id: UUID
@@ -36,6 +43,7 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ProjectResponse(BaseModel):
     id: UUID
     user_id: UUID
@@ -46,6 +54,7 @@ class ProjectResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class DocumentResponse(BaseModel):
     id: UUID
@@ -59,6 +68,7 @@ class DocumentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class DocumentProgressResponse(BaseModel):
     id: UUID
     project_id: UUID
@@ -71,11 +81,13 @@ class DocumentProgressResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ProjectProgressResponse(BaseModel):
     status: str
     total_documents: int
     documents_processed: int
     documents: List[DocumentProgressResponse]
+
 
 class ChunkResponse(BaseModel):
     id: UUID
@@ -86,9 +98,18 @@ class ChunkResponse(BaseModel):
     has_image: bool | None = None
     has_table: bool | None = None
     created_at: datetime
+    images: List["ImageResponse"] = []
 
     class Config:
         from_attributes = True
+
+
+class ImageResponse(BaseModel):
+    id: UUID
+    chunk_id: UUID
+    s3_key: str | None = None
+    created_at: datetime
+
 
 class MessageResponse(BaseModel):
     id: UUID
